@@ -21,15 +21,15 @@ import { load, loadWithFetch } from "./loader";
 // });
 
 
-let source = Observable.merge(
-    Observable.of(1),
-    Observable.from([2, 3, 4]),
-    Observable.throw(new Error("Stop!")),
-    Observable.of(5)
-).catch(e => {
-    console.log(`caught: ${e}`);
-    return Observable.of(10);
-});
+// let source = Observable.merge(
+//     Observable.of(1),
+//     Observable.from([2, 3, 4]),
+//     Observable.throw(new Error("Stop!")),
+//     Observable.of(5)
+// ).catch(e => {
+//     console.log(`caught: ${e}`);
+//     return Observable.of(10);
+// });
 
 // let source = Observable.onErrorResumeNext(
 //     Observable.of(1),
@@ -40,28 +40,30 @@ let source = Observable.merge(
 
 
 
-source.subscribe(
-    value => console.log(`value: ${value}`),
-    error => console.log(`error is: ${error}`),
-    () => console.log("complete")
-);
+// source.subscribe(
+//     value => console.log(`value: ${value}`),
+//     error => console.log(`error is: ${error}`),
+//     () => console.log("complete")
+// );
 
-// let output = document.getElementById("output");
-// let button = document.getElementById("button");
-// let click = Observable.fromEvent(button, "click");
+let output = document.getElementById("output");
+let button = document.getElementById("button");
+let click = Observable.fromEvent(button, "click");
 
-// function renderMovies(movies) {
-//     movies.forEach(m => {
-//         let div = document.createElement("div");
-//         div.innerText = m.title;
-//         output.appendChild(div);
-//     })
-// }
+function renderMovies(movies) {
+    movies.forEach(m => {
+        let div = document.createElement("div");
+        div.innerText = m.title;
+        output.appendChild(div);
+    })
+}
 
 // the following line will do nothing until subscribed. 
 //load("movies.json").subscribe(renderMovies);
 
-// loadWithFetch("movies.json");
+loadWithFetch("moviess.json").subscribe(renderMovies,
+    e => console.log(`error: ${e}`),
+    () => console.log("complete!"));
 
 /**
  * How do I process the movies that are fetched from the URL.  
@@ -73,11 +75,11 @@ source.subscribe(
  * so to grab hold of that we use flatMap() operator instead of the map().
  * flatMap flattens the outer observable to the inner observable.
  */
-// click.flatMap(e => loadWithFetch("movies.json"))
-//     .subscribe(renderMovies,
-//         e => console.log(`error: ${e}`),
-//         () => console.log("complete")
-//     );
+click.flatMap(e => loadWithFetch("movies.json"))
+    .subscribe(renderMovies,
+        e => console.log(`error: ${e}`),
+        () => console.log("complete")
+    );
 
 /**
  * Formal definition of an observer
