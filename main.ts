@@ -22,33 +22,49 @@ let click = Observable.fromEvent(button, "click");
  * @param url 
  */
 function load(url: string) {
-    let xhr = new XMLHttpRequest();
 
-    xhr.addEventListener(
-        "load",
-        () => {
-            let movies = JSON.parse(xhr.responseText);
-            movies.forEach(m => {
-                let div = document.createElement("div");
-                div.innerText = m.title;
-                output.appendChild(div);
-            })
-        }
-    );
-    xhr.open("GET", url);
-    xhr.send();
+    return Observable.create(observer => {
+        let xhr = new XMLHttpRequest();
+
+        xhr.addEventListener(
+            "load",
+            () => {
+                let data = JSON.parse(xhr.responseText);
+                observer.next(data);
+                observer.complete();
+            }
+        );
+        xhr.open("GET", url);
+        xhr.send();
+    });
 }
 
+function renderMovies(movies) {
+    movies.forEach(m => {
+        let div = document.createElement("div");
+        div.innerText = m.title;
+        output.appendChild(div);
+    })
+}
+
+// the following line will do nothing until subscribed. 
+load("movies.json");
+
 /**
- * Instead of creating a full blown class with the three methods, 
- * you could just pass an object with the three methods, or at least 
- * one function which serves as the definition of next()
+ * How do I process the movies that are fetched from the URL.  
  */
-click.subscribe(
-    e => load("movies.json"),
-    e => console.log(`error: ${e}`),
-    () => console.log("complete")
-);
+
+/** the following code means, applying map operator to the click observable 
+ * and then subscribing to the click observable.
+ * However we need to subscribe to the inner observable - load()
+ * so to grab hold of that we use flatMap() operator instead of the map().
+ * flatMap flattens the outer observable to the inner observable.
+ */
+click.flatMap(e => load("movies.json"))
+    .subscribe(renderMovies,
+        e => console.log(`error: ${e}`),
+        () => console.log("complete")
+    );
 
 /**
  * Formal definition of an observer
