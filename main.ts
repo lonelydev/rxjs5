@@ -8,28 +8,29 @@ import { Observable, Observer } from "rxjs";
 // import "rxjs/add/operator/map";
 // import "rxjs/add/operator/filter";
 
-let numbers = [1, 5, 10];
-let source = Observable.create(observer => {
-    let index = 0;
-    let produceValue = () => {
-        observer.next(numbers[index++]);
-        if (index < numbers.length) {
-            setTimeout(produceValue, 250);
-        } else {
-            observer.complete();
+let circle = document.getElementById("circle");
+let source = Observable.fromEvent(document, "mousemove")
+    .map((e: MouseEvent) => {
+        return {
+            x: e.clientX,
+            y: e.clientY
         }
-    }
-    produceValue();
-}).map(n => n * 2)
-    .filter(n => n > 4);
+    })
+    .filter(n => n.x < 500)
+    .delay(300);
 
+
+function onNext(value) {
+    circle.style.left = value.x;
+    circle.style.top = value.y;
+}
 /**
  * Instead of creating a full blown class with the three methods, 
  * you could just pass an object with the three methods, or at least 
  * one function which serves as the definition of next()
  */
 source.subscribe(
-    value => console.log(`value: ${value}`),
+    onNext,
     e => console.log(`error: ${e}`),
     () => console.log("complete")
 );
