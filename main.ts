@@ -44,6 +44,20 @@ function load(url: string) {
     }).retryWhen(retryStrategy({ attempts: 3, delay: 1500 }));
 }
 
+/**
+ * https://fetch.spec.whatwg.org/
+ * don't worry polyfill and browser support etc. 
+ * fetch api doesn't work straight out of the box in typescript
+ * so get rid of typings es6-shim.
+ * 
+ * @param url 
+ */
+function loadWithFetch(url: string) {
+    return Observable.defer(() => {
+        return Observable.fromPromise(fetch(url).then(r => r.json()));
+    });
+}
+
 function retryStrategy({ attempts = 4, delay = 1000 }) {
     return function (errors) {
         return errors
@@ -84,6 +98,8 @@ function renderMovies(movies) {
 // the following line will do nothing until subscribed. 
 //load("movies.json").subscribe(renderMovies);
 
+loadWithFetch("movies.json");
+
 /**
  * How do I process the movies that are fetched from the URL.  
  */
@@ -94,7 +110,7 @@ function renderMovies(movies) {
  * so to grab hold of that we use flatMap() operator instead of the map().
  * flatMap flattens the outer observable to the inner observable.
  */
-click.flatMap(e => load("movies.json"))
+click.flatMap(e => loadWithFetch("movies.json"))
     .subscribe(renderMovies,
         e => console.log(`error: ${e}`),
         () => console.log("complete")
