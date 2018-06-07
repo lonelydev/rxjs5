@@ -61,9 +61,13 @@ function renderMovies(movies) {
 // the following line will do nothing until subscribed. 
 //load("movies.json").subscribe(renderMovies);
 
-loadWithFetch("moviess.json").subscribe(renderMovies,
-    e => console.log(`error: ${e}`),
-    () => console.log("complete!"));
+let subscription = load("movies.json")
+    .subscribe(renderMovies,
+        e => console.log(`error: ${e}`),
+        () => console.log("complete!"));
+
+console.log(subscription);
+// subscription.unsubscribe();
 
 /**
  * How do I process the movies that are fetched from the URL.  

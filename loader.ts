@@ -12,21 +12,27 @@ import { retryWhen } from "rxjs/operator/retryWhen";
 export function load(url: string) {
     return Observable.create(observer => {
         let xhr = new XMLHttpRequest();
-
-        xhr.addEventListener(
-            "load",
-            () => {
-                if (xhr.status === 200) {
-                    let data = JSON.parse(xhr.responseText);
-                    observer.next(data);
-                    observer.complete();
-                } else {
-                    observer.error(xhr.statusText);
-                }
+        let onLoad = () => {
+            if (xhr.status === 200) {
+                let data = JSON.parse(xhr.responseText);
+                observer.next(data);
+                observer.complete();
+            } else {
+                observer.error(xhr.statusText);
             }
-        );
+        }
+        xhr.addEventListener("load", onLoad);
         xhr.open("GET", url);
         xhr.send();
+        /** return a function here that gets invoked to cancel an operation
+         * ability to clean up
+         * 
+         */
+        return () => {
+            console.log("cleanup");
+            xhr.removeEventListener("load", onLoad);
+            xhr.abort();
+        }
         /** so easy to retry!! */
     }).retryWhen(retryStrategy({ attempts: 3, delay: 1500 }));
 }
