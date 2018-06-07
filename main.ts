@@ -8,29 +8,44 @@ import { Observable, Observer } from "rxjs";
 // import "rxjs/add/operator/map";
 // import "rxjs/add/operator/filter";
 
-let circle = document.getElementById("circle");
-let source = Observable.fromEvent(document, "mousemove")
-    .map((e: MouseEvent) => {
-        return {
-            x: e.clientX,
-            y: e.clientY
+let output = document.getElementById("output");
+let button = document.getElementById("button");
+let click = Observable.fromEvent(button, "click");
+
+
+/**
+ * Bad design to start with. 
+ * The load method does too many things. 
+ * The movies.each shouldn't be inside the load method. 
+ * that should be in the application code that the user wants to process
+ * according to their liking.
+ * @param url 
+ */
+function load(url: string) {
+    let xhr = new XMLHttpRequest();
+
+    xhr.addEventListener(
+        "load",
+        () => {
+            let movies = JSON.parse(xhr.responseText);
+            movies.forEach(m => {
+                let div = document.createElement("div");
+                div.innerText = m.title;
+                output.appendChild(div);
+            })
         }
-    })
-    .filter(n => n.x < 500)
-    .delay(300);
-
-
-function onNext(value) {
-    circle.style.left = value.x;
-    circle.style.top = value.y;
+    );
+    xhr.open("GET", url);
+    xhr.send();
 }
+
 /**
  * Instead of creating a full blown class with the three methods, 
  * you could just pass an object with the three methods, or at least 
  * one function which serves as the definition of next()
  */
-source.subscribe(
-    onNext,
+click.subscribe(
+    e => load("movies.json"),
     e => console.log(`error: ${e}`),
     () => console.log("complete")
 );
