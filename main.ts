@@ -29,14 +29,48 @@ function load(url: string) {
         xhr.addEventListener(
             "load",
             () => {
-                let data = JSON.parse(xhr.responseText);
-                observer.next(data);
-                observer.complete();
+                if (xhr.status === 200) {
+                    let data = JSON.parse(xhr.responseText);
+                    observer.next(data);
+                    observer.complete();
+                } else {
+                    observer.error(xhr.statusText);
+                }
             }
         );
         xhr.open("GET", url);
         xhr.send();
-    });
+        /** so easy to retry!! */
+    }).retryWhen(retryStrategy({ attempts: 3, delay: 1500 }));
+}
+
+function retryStrategy({ attempts = 4, delay = 1000 }) {
+    return function (errors) {
+        return errors
+            /**
+             * scan operator => 
+             * aggregator to count elements coming through sequence
+             * sum a property of elements coming through sequence
+             */
+            .scan((acc, value) => {
+                /** acc is the number
+                 *  value is the statusText
+                 */
+                console.log(acc, value);
+                // return new value for the accumulator
+                return acc + 1;
+            },
+                /*
+                * second param is the start value of the accumulator
+                */
+                0)
+            /**
+             * operator to stop the observable when we reach a max retry
+             * attempts
+             */
+            .takeWhile(acc => acc < attempts)
+            .delay(delay);
+    }
 }
 
 function renderMovies(movies) {
@@ -48,7 +82,7 @@ function renderMovies(movies) {
 }
 
 // the following line will do nothing until subscribed. 
-load("movies.json");
+//load("movies.json").subscribe(renderMovies);
 
 /**
  * How do I process the movies that are fetched from the URL.  
