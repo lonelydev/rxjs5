@@ -1,4 +1,5 @@
 import { Observable, Observer } from "rxjs";
+import { load, loadWithFetch } from "./loader";
 /**
  * To optimize the size of the bundle that is being sent to the browser
  * always import only what you need like below. However for the purpose of the tutorial
@@ -8,97 +9,59 @@ import { Observable, Observer } from "rxjs";
 // import "rxjs/add/operator/map";
 // import "rxjs/add/operator/filter";
 
-let output = document.getElementById("output");
-let button = document.getElementById("button");
-let click = Observable.fromEvent(button, "click");
+// let source = Observable.create(observer => {
+//     observer.next(1);
+//     observer.next(2);
+//     //unhandled error!!
+//     //throw new Error("stop!");
+//     //observer error - handle-able
+//     observer.error("stop!");
+//     observer.next(3);
+//     observer.complete();
+// });
 
 
-/**
- * Bad design to start with. 
- * The load method does too many things. 
- * The movies.each shouldn't be inside the load method. 
- * that should be in the application code that the user wants to process
- * according to their liking.
- * @param url 
- */
-function load(url: string) {
+let source = Observable.merge(
+    Observable.of(1),
+    Observable.from([2, 3, 4]),
+    Observable.throw(new Error("Stop!")),
+    Observable.of(5)
+).catch(e => {
+    console.log(`caught: ${e}`);
+    return Observable.of(10);
+});
 
-    return Observable.create(observer => {
-        let xhr = new XMLHttpRequest();
+// let source = Observable.onErrorResumeNext(
+//     Observable.of(1),
+//     Observable.from([2, 3, 4]),
+//     Observable.throw(new Error("Stop!")),
+//     Observable.of(5)
+// );
 
-        xhr.addEventListener(
-            "load",
-            () => {
-                if (xhr.status === 200) {
-                    let data = JSON.parse(xhr.responseText);
-                    observer.next(data);
-                    observer.complete();
-                } else {
-                    observer.error(xhr.statusText);
-                }
-            }
-        );
-        xhr.open("GET", url);
-        xhr.send();
-        /** so easy to retry!! */
-    }).retryWhen(retryStrategy({ attempts: 3, delay: 1500 }));
-}
 
-/**
- * https://fetch.spec.whatwg.org/
- * don't worry polyfill and browser support etc. 
- * fetch api doesn't work straight out of the box in typescript
- * so get rid of typings es6-shim.
- * 
- * @param url 
- */
-function loadWithFetch(url: string) {
-    return Observable.defer(() => {
-        return Observable.fromPromise(fetch(url).then(r => r.json()));
-    });
-}
 
-function retryStrategy({ attempts = 4, delay = 1000 }) {
-    return function (errors) {
-        return errors
-            /**
-             * scan operator => 
-             * aggregator to count elements coming through sequence
-             * sum a property of elements coming through sequence
-             */
-            .scan((acc, value) => {
-                /** acc is the number
-                 *  value is the statusText
-                 */
-                console.log(acc, value);
-                // return new value for the accumulator
-                return acc + 1;
-            },
-                /*
-                * second param is the start value of the accumulator
-                */
-                0)
-            /**
-             * operator to stop the observable when we reach a max retry
-             * attempts
-             */
-            .takeWhile(acc => acc < attempts)
-            .delay(delay);
-    }
-}
+source.subscribe(
+    value => console.log(`value: ${value}`),
+    error => console.log(`error is: ${error}`),
+    () => console.log("complete")
+);
 
-function renderMovies(movies) {
-    movies.forEach(m => {
-        let div = document.createElement("div");
-        div.innerText = m.title;
-        output.appendChild(div);
-    })
-}
+// let output = document.getElementById("output");
+// let button = document.getElementById("button");
+// let click = Observable.fromEvent(button, "click");
+
+// function renderMovies(movies) {
+//     movies.forEach(m => {
+//         let div = document.createElement("div");
+//         div.innerText = m.title;
+//         output.appendChild(div);
+//     })
+// }
 
 // the following line will do nothing until subscribed. 
 //load("movies.json").subscribe(renderMovies);
 
-loadWithFetch("movies.json");
+// loadWithFetch("movies.json");
 
 /**
  * How do I process the movies that are fetched from the URL.  
@@ -110,11 +73,11 @@ loadWithFetch("movies.json");
  * so to grab hold of that we use flatMap() operator instead of the map().
  * flatMap flattens the outer observable to the inner observable.
  */
-click.flatMap(e => loadWithFetch("movies.json"))
-    .subscribe(renderMovies,
-        e => console.log(`error: ${e}`),
-        () => console.log("complete")
-    );
+// click.flatMap(e => loadWithFetch("movies.json"))
+//     .subscribe(renderMovies,
+//         e => console.log(`error: ${e}`),
+//         () => console.log("complete")
+//     );
 
 /**
  * Formal definition of an observer
