@@ -1,4 +1,5 @@
 import { Observable, Observer } from "rxjs";
+import { retryWhen } from "rxjs/operator/retryWhen";
 
 /**
  * Bad design to start with. 
@@ -40,11 +41,21 @@ export function load(url: string) {
  */
 export function loadWithFetch(url: string) {
     return Observable.defer(() => {
-        return Observable.fromPromise(fetch(url).then(r => r.json()));
-    });
+        return Observable.fromPromise(
+            fetch(url)
+                .then(r => {
+                    if (r.status === 200) {
+                        r.json();
+                    } else {
+                        return Promise.reject(r);
+                    }
+                })
+        ); // wrong place to put retry when as it is retyring the rejected promis
+        // there won't be any network request made! .retryWhen(retryStrategy());
+    }).retryWhen(retryStrategy());
 }
 
-function retryStrategy({ attempts = 4, delay = 1000 }) {
+function retryStrategy({ attempts = 4, delay = 1000 } = {}) {
     return function (errors) {
         return errors
             /**
@@ -53,12 +64,19 @@ function retryStrategy({ attempts = 4, delay = 1000 }) {
              * sum a property of elements coming through sequence
              */
             .scan((acc, value) => {
-                /** acc is the number
-                 *  value is the statusText
-                 */
-                console.log(acc, value);
-                // return new value for the accumulator
-                return acc + 1;
+                // let us propagate the error to the subscriber instead
+                // /** acc is the number
+                //  *  value is the statusText
+                //  */
+                // console.log(acc, value);
+                // // return new value for the accumulator
+                // return acc + 1;
+                acc += 1;
+                if (acc < attempts) {
+                    return acc;
+                } else {
+                    throw new Error(value);
+                }
             },
                 /*
                 * second param is the start value of the accumulator
